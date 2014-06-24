@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no;" />
+	<style>
+	#canvas {
+	  border:1px solid #999;
+	  margin:20px;
+	  -ms-touch-action: none
+	}
+	</style>
+</head>
+<body>
+	<form action="" id="roomform">
+		<input type="text" placeholder="join/create room" required id="room" />
+	</form>
+
+	<div class="whiteboard">
+		<canvas id="canvas" width="800" height="500"></canvas>
+		<button>clear</button>
+	</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="//code.jquery.com/jquery-2.1.1.min.js"></script>
+	<script>
+
+	var socket = io();
+	jQuery('.whiteboard').hide();
+	jQuery('#roomform').submit(function(e) {
+
+		socket.emit('room', jQuery('#room').val());
+
+		whiteboard.init();
+		jQuery(this).hide();
+		e.preventDefault();
+		return false;
+	});
+
+
+
+
+var whiteboard=(function() {
+
+	var canvas = document.getElementById('canvas');
+	var ctx = canvas.getContext('2d');
+	var drawing = false;
+
+	var init=function() {
+		jQuery('.whiteboard').show();
+		jQuery(canvas).on('mousedown touchstart MSPointerDown', function() {
+			drawing=true;
+		});
+		jQuery(canvas).on('mouseup touchend MSPointerUp', function() {
+			drawing=false;
+		});
+
+		jQuery(canvas).on('mousemove touchmove MSPointerMove', function(e) {
+			if (drawing) {
+				var x = e.offsetX || e.originalEvent.touches[0].pageX-e.target.offsetLeft;
+				var y = e.offsetY || e.originalEvent.touches[0].pageY-e.target.offsetTop;
+				
+				socket.emit('draw', {x:x,y:y,w:4,h:4}); 
+				e.preventDefault();
+			}
+		});
+		jQuery('button').on('click',function() {
+			socket.emit('clear', {});
+		});
+
+		attachSocketListeners();
+	}
+
+	var attachSocketListeners = function() {
+		socket.on('draw', function(point) {
+			ctx.fillRect(point.x,point.y,point.w,point.h);
+		});
+		socket.on('clear', function() {
+			ctx.clearRect(0,0,800,500);
+		});
+	}
+
+	return {
+		init:init
+	}
+})();
+
+ 
+
+
+
+	</script>
+</body>
+</html>
